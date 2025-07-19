@@ -45,13 +45,5 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<key>NSCameraUsageDescription</key>
-	<string>Profil ve kapak fotoğrafı çekmek için kamera izni gerekiyor.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>This app needs access to the microphone to record audio in vlogs</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Profil ve kapak fotoğrafı seçmek için galerinize erişim izni gerekiyor.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>This app needs access to save vlogs to your photo library</string>
 </dict>
 </plist>

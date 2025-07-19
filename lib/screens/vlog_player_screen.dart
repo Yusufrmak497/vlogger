@@ -27,7 +27,7 @@ class _VlogPlayerScreenState extends State<VlogPlayerScreen> {
   }
 
   Future<void> _initializePlayer() async {
-    _controller = VideoPlayerController.network(widget.vlogUrl);
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.vlogUrl));
     try {
       await _controller.initialize();
       await _controller.setLooping(true);

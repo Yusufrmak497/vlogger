@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
+import '../services/auth_service.dart';
 import 'register_screen.dart';
+import 'home_screen.dart'; // Added import for HomeScreen
+import 'package:flutter/foundation.dart'; // Added for kDebugMode
+import 'package:firebase_auth/firebase_auth.dart'; // Added for FirebaseAuth
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,6 +17,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  final AuthService _authService = AuthService();
 
   @override
   void dispose() {
@@ -29,22 +34,63 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       try {
-        // TODO: Implement actual authentication logic here
-        // Simulating network delay
-        await Future.delayed(const Duration(seconds: 1));
+        print('Giriş denemesi başladı...');
+        print('Email: ${_emailController.text.trim()}');
+        print('Password length: ${_passwordController.text.length}');
+        
+        final result = await _authService.signInWithEmailAndPassword(
+          _emailController.text.trim(),
+          _passwordController.text,
+        );
+        
+        print('Giriş sonucu: $result');
         
         if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-          );
+          if (!result['success']) {
+            print('Giriş başarısız: ${result['error']}');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result['error'] ?? 'Giriş yapılırken bir hata oluştu'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+                action: SnackBarAction(
+                  label: 'Detay',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    // Show detailed error in dialog
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Giriş Hatası'),
+                        content: Text(result['error'] ?? 'Bilinmeyen hata'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Tamam'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          } else {
+            print('Giriş başarılı!');
+            // Manuel yönlendirme ekleyelim
+            if (mounted) {
+              Navigator.of(context).pushReplacementNamed('/home');
+            }
+          }
         }
       } catch (e) {
+        print('LoginScreen: Beklenmeyen hata: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Giriş yapılırken bir hata oluştu'),
+            SnackBar(
+              content: Text('Beklenmeyen bir hata oluştu: $e'),
               backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
             ),
           );
         }
@@ -58,11 +104,65 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _handleForgotPassword() async {
+    if (_emailController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lütfen önce email adresinizi girin'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final result = await _authService.resetPassword(_emailController.text.trim());
+      
+      if (mounted) {
+        if (result['success']) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message']),
+              backgroundColor: const Color(0xFF6750A4),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['error']),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Şifre sıfırlama hatası: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F2FF),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Form(
             key: _formKey,
@@ -70,22 +170,83 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const SizedBox(height: 60),
+                // Logo ve başlık
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6750A4).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Icon(
+                          Icons.video_library,
+                          size: 40,
+                          color: Color(0xFF6750A4),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                 const Text(
                   'Vlogger',
                   style: TextStyle(
-                    fontSize: 32,
+                          fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF6750A4),
                   ),
-                  textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Vlog dünyasına hoş geldiniz',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 32),
+                // Giriş formu
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
                 TextFormField(
                   controller: _emailController,
-                  decoration: const InputDecoration(
+                        decoration: InputDecoration(
                     labelText: 'Email',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.email_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.email_outlined),
+                          filled: true,
+                          fillColor: Colors.grey[50],
                   ),
                   keyboardType: TextInputType.emailAddress,
                   validator: (value) {
@@ -101,12 +262,26 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: const InputDecoration(
+                        decoration: InputDecoration(
                     labelText: 'Şifre',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock_outline),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[50],
                   ),
-                  obscureText: true,
+                        obscureText: _obscurePassword,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Lütfen şifrenizi girin';
@@ -117,12 +292,29 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _handleLogin,
-                  style: ElevatedButton.styleFrom(
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: _isLoading ? null : _handleForgotPassword,
+                          child: const Text(
+                            'Şifremi unuttum',
+                            style: TextStyle(color: Color(0xFF6750A4)),
+                          ),
+                        ),
+                      ),
+                                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                        onPressed: _isLoading ? null : _handleLogin,
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6750A4),
+                            foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: const Color(0xFF6750A4),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                   ),
                   child: _isLoading
                       ? const SizedBox(
@@ -135,10 +327,22 @@ class _LoginScreenState extends State<LoginScreen> {
                         )
                       : const Text(
                           'Giriş Yap',
-                          style: TextStyle(fontSize: 16),
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                ),
+                        ),
+                      ),
+                    ],
                         ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
+                // Kayıt ol linki
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Hesabın yok mu? ',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                 TextButton(
                   onPressed: () {
                     Navigator.push(
@@ -147,10 +351,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     );
                   },
                   child: const Text(
-                    'Hesabın yok mu? Kayıt ol',
-                    style: TextStyle(color: Color(0xFF6750A4)),
+                        'Kayıt ol',
+                        style: TextStyle(
+                          color: Color(0xFF6750A4),
+                          fontWeight: FontWeight.w600,
+                        ),
                   ),
                 ),
+                  ],
+                ),
+                const SizedBox(height: 40),
               ],
             ),
           ),

@@ -12,28 +12,6 @@ class GroupVlogsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Örnek vlog listesi - gerçek uygulamada API'den gelecek
-    final List<Map<String, dynamic>> vlogs = [
-      {
-        'url': group.lastVlog,
-        'uploadedBy': 'Ahmet',
-        'uploadedAt': DateTime.now().subtract(const Duration(hours: 2)),
-        'duration': '2:30',
-      },
-      {
-        'url': group.lastVlog,
-        'uploadedBy': 'Mehmet',
-        'uploadedAt': DateTime.now().subtract(const Duration(hours: 5)),
-        'duration': '1:45',
-      },
-      {
-        'url': group.lastVlog,
-        'uploadedBy': 'Ayşe',
-        'uploadedAt': DateTime.now().subtract(const Duration(hours: 8)),
-        'duration': '3:15',
-      },
-    ];
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8F2FF),
       appBar: AppBar(
@@ -45,28 +23,20 @@ class GroupVlogsScreen extends StatelessWidget {
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: vlogs.length,
+        itemCount: 0, // No mock data, so itemCount is 0
         itemBuilder: (context, index) {
-          final vlog = vlogs[index];
-          final timeDiff = DateTime.now().difference(vlog['uploadedAt']);
-          String timeAgo;
-          
-          if (timeDiff.inHours < 24) {
-            timeAgo = '${timeDiff.inHours} saat önce';
-          } else {
-            timeAgo = '${timeDiff.inDays} gün önce';
-          }
-
+          // This loop will not execute as itemCount is 0
           return Card(
             margin: const EdgeInsets.only(bottom: 16),
             child: InkWell(
               onTap: () {
-                if (vlog['url'] != null) {
+                // This onTap will not execute as vlog['url'] is null
+                if (false) { // Placeholder for vlog['url']
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => VlogPlayerScreen(
-                        vlogUrl: vlog['url']!,
+                        vlogUrl: 'https://example.com/vlog.mp4', // Placeholder for vlogUrl
                         group: group,
                       ),
                     ),
@@ -76,12 +46,13 @@ class GroupVlogsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (vlog['url'] != null)
+                  // This Container will not render as vlog['url'] is null
+                  if (false) // Placeholder for vlog['url']
                     Container(
                       height: 200,
                       decoration: BoxDecoration(
                         image: DecorationImage(
-                          image: NetworkImage(vlog['url']!),
+                          image: NetworkImage('https://via.placeholder.com/300x200'), // Placeholder for image
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -94,7 +65,7 @@ class GroupVlogsScreen extends StatelessWidget {
                                 end: Alignment.bottomCenter,
                                 colors: [
                                   Colors.transparent,
-                                  Colors.black.withOpacity(0.7),
+                                  Colors.black.withValues(alpha: 0.7),
                                 ],
                               ),
                             ),
@@ -108,11 +79,11 @@ class GroupVlogsScreen extends StatelessWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.7),
+                                color: Colors.black.withValues(alpha: 0.7),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                vlog['duration'],
+                                '2:30', // Placeholder for duration
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 12,
@@ -130,7 +101,7 @@ class GroupVlogsScreen extends StatelessWidget {
                         CircleAvatar(
                           backgroundColor: const Color(0xFF6750A4),
                           child: Text(
-                            vlog['uploadedBy'][0],
+                            'A', // Placeholder for uploadedBy
                             style: const TextStyle(color: Colors.white),
                           ),
                         ),
@@ -140,14 +111,14 @@ class GroupVlogsScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                vlog['uploadedBy'],
+                                'Ahmet', // Placeholder for uploadedBy
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               Text(
-                                timeAgo,
+                                '2 saat önce', // Placeholder for timeAgo
                                 style: TextStyle(
                                   color: Colors.grey[600],
                                   fontSize: 14,

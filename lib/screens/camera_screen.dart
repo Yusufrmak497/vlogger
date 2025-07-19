@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class CameraScreen extends StatefulWidget {
@@ -17,125 +17,136 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen> {
-  CameraController? _controller;
-  bool _isRecording = false;
-  bool _isInitialized = false;
+  final ImagePicker _picker = ImagePicker();
+  bool _isProcessing = false;
+  bool _hasTried = false;
+
 
   @override
   void initState() {
     super.initState();
-    _initializeCamera();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkPermissionAndOpenCamera());
   }
 
-  Future<void> _initializeCamera() async {
-    final cameras = await availableCameras();
-    if (cameras.isEmpty) return;
-
-    final status = await Permission.camera.request();
+  Future<void> _checkPermissionAndOpenCamera() async {
+    // Kamera izni kontrolü
+    final status = await Permission.camera.status;
     if (status.isDenied) {
+      final result = await Permission.camera.request();
+      if (result.isDenied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Kamera izni gerekli'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          Navigator.pop(context);
+        }
+        return;
+      }
+    }
+
+    if (status.isPermanentlyDenied) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Kamera izni gerekli')),
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Kamera İzni'),
+            content: const Text('Kamera izni kalıcı olarak reddedildi. Ayarlardan izin vermeniz gerekiyor.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('İptal'),
+              ),
+              TextButton(
+                onPressed: () {
+                  openAppSettings();
+                  Navigator.pop(context);
+                },
+                child: const Text('Ayarlar'),
+              ),
+            ],
+          ),
         );
       }
       return;
     }
 
-    _controller = CameraController(
-      cameras.first,
-      ResolutionPreset.high,
-      enableAudio: true,
-    );
+    // Permission granted
+
+    await _openCamera();
+  }
+
+  Future<void> _openCamera() async {
+    if (_isProcessing) return;
+    setState(() { 
+      _isProcessing = true; 
+      _hasTried = true;
+    });
 
     try {
-      await _controller!.initialize();
-      if (mounted) {
-        setState(() {
-          _isInitialized = true;
-        });
+      final XFile? video = await _picker.pickVideo(
+        source: ImageSource.camera,
+        maxDuration: const Duration(minutes: 10),
+        preferredCameraDevice: CameraDevice.rear,
+      );
+
+      if (video != null) {
+        widget.onVideoSaved(video.path);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Video kaydedildi!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        }
+      } else {
+        // Kullanıcı kameradan çıkarsa veya iptal ederse
+        if (mounted) Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Kamera başlatılamadı: $e')),
+          SnackBar(
+            content: Text('Kamera açılamadı: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
+        Navigator.pop(context);
       }
+    } finally {
+      if (mounted) setState(() { _isProcessing = false; });
     }
-  }
-
-  Future<void> _startRecording() async {
-    if (_controller == null || !_isInitialized) return;
-
-    try {
-      await _controller!.startVideoRecording();
-      setState(() {
-        _isRecording = true;
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Video kaydı başlatılamadı: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _stopRecording() async {
-    if (_controller == null || !_isInitialized) return;
-
-    try {
-      final file = await _controller!.stopVideoRecording();
-      setState(() {
-        _isRecording = false;
-      });
-      widget.onVideoSaved(file.path);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Video kaydı durdurulamadı: $e')),
-        );
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_isInitialized) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          CameraPreview(_controller!),
-          Positioned(
-            bottom: 32,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                FloatingActionButton(
-                  backgroundColor: _isRecording ? Colors.red : const Color(0xFF6750A4),
-                  onPressed: _isRecording ? _stopRecording : _startRecording,
-                  child: Icon(_isRecording ? Icons.stop : Icons.videocam),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      body: _hasTried && !_isProcessing
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.camera_alt,
+                    color: Colors.white,
+                    size: 64,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Kamera yükleniyor...',
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                  const SizedBox(height: 8),
+                  const CircularProgressIndicator(color: Colors.white),
+                ],
+              ),
+            )
+          : const SizedBox.shrink(),
     );
   }
 } 

@@ -21,10 +21,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // Örnek veriler (gerçek uygulamada API'den gelecek)
-    _nameController.text = 'Kullanıcı Adı';
-    _usernameController.text = 'kullanici';
-    _bioController.text = 'Merhaba! Ben bir vlog içerik üreticisiyim.';
   }
 
   Future<void> _pickImage(bool isProfileImage) async {
@@ -116,10 +112,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             image: FileImage(File(_coverImagePath!)),
                             fit: BoxFit.cover,
                           )
-                        : const DecorationImage(
-                            image: NetworkImage('https://picsum.photos/800/400'),
-                            fit: BoxFit.cover,
-                          ),
+                        : null,
                   ),
                   child: Stack(
                     children: [
@@ -157,8 +150,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           radius: 50,
                           backgroundImage: _profileImagePath != null
                               ? FileImage(File(_profileImagePath!))
-                              : const NetworkImage('https://picsum.photos/200')
-                                  as ImageProvider,
+                              : null,
                         ),
                       ),
                       Positioned(
